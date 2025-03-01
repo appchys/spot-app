@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { db } from "../lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
 import { addSpot, uploadPhoto } from "../lib/firebase";
-import "../styles/globals.css"; // Asegúrate de importar el CSS
 
 export default function Home() {
   const [spots, setSpots] = useState([]);
