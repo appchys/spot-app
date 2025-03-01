@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
+import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 import { auth } from "../lib/firebase";
 
 export default function PhoneAuth({ onVerified }) {
@@ -31,14 +31,22 @@ export default function PhoneAuth({ onVerified }) {
 
   return (
     <div>
-      <h2>Verificación de Teléfono</h2>
-      <input type="text" placeholder="+593..." value={phone} onChange={(e) => setPhone(e.target.value)} />
-      <button onClick={sendCode}>Enviar Código</button>
+      <input
+        type="tel"
+        value={phone}
+        onChange={(e) => setPhone(e.target.value)}
+        placeholder="Número de teléfono"
+      />
+      <button onClick={sendCode}>Enviar código</button>
       <div id="recaptcha-container"></div>
-
       {confirmationResult && (
         <>
-          <input type="text" placeholder="Código OTP" value={otp} onChange={(e) => setOtp(e.target.value)} />
+          <input
+            type="text"
+            value={otp}
+            onChange={(e) => setOtp(e.target.value)}
+            placeholder="Código OTP"
+          />
           <button onClick={verifyCode}>Verificar</button>
         </>
       )}
