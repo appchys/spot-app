@@ -1,4 +1,13 @@
 /* styles/globals.css */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Roboto', sans-serif; /* Tipografía similar a Airbnb */
+}
+
 .container {
   max-width: 900px;
   margin: 0 auto;
@@ -9,16 +18,16 @@
 .btn-add {
   padding: 10px 20px;
   font-size: 16px;
-  background-color: #4CAF50;
+  background-color: #ff385c; /* Color inspirado en Airbnb */
   color: white;
   border: none;
+  border-radius: 8px;
   cursor: pointer;
   margin-top: 20px;
-  border-radius: 4px;
 }
 
 .btn-add:hover {
-  background-color: #45a049;
+  background-color: #e31c5f;
 }
 
 .spots-list {
@@ -32,11 +41,12 @@
 .spot-card {
   width: 250px;
   padding: 15px;
-  background-color: #f9f9f9;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  background-color: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
   cursor: pointer;
   transition: transform 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .spot-card:hover {
@@ -47,19 +57,80 @@
   width: 100%;
   height: 150px;
   object-fit: cover;
-  border-radius: 4px;
+  border-radius: 8px;
 }
 
 .spot-card h2 {
   font-size: 18px;
   margin: 10px 0;
+  font-weight: 500;
 }
 
 .spot-card p {
   font-size: 14px;
-  color: #555;
+  color: #717171; /* Gris similar a Airbnb */
 }
 
+/* Formulario flotante */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 12px;
+  width: 400px; /* Ancho fijo */
+  max-height: 80vh; /* Altura máxima */
+  overflow-y: auto; /* Desplazamiento vertical si es necesario */
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.modal-content label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: #222;
+}
+
+.modal-content input,
+.modal-content button {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.modal-content button {
+  background-color: #ff385c;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.modal-content button:hover {
+  background-color: #e31c5f;
+}
+
+/* Mapa */
+.map-container {
+  height: 200px; /* Altura fija */
+  width: 100%; /* Ancho completo del contenedor */
+  margin-bottom: 15px;
+}
+
+/* Galería de fotos */
 .photo-viewer {
   position: fixed;
   top: 0;
@@ -79,14 +150,27 @@
   border-radius: 8px;
   display: flex;
   gap: 20px;
-  max-width: 80%;
-  max-height: 80%;
+  width: 600px; /* Ancho fijo */
+  height: 450px; /* Altura fija */
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  position: relative; /* Para posicionar el botón de cerrar */
 }
 
 .main-photo {
-  width: 400px;
-  height: 400px;
-  object-fit: cover;
+  width: 400px; /* Ancho fijo */
+  height: 400px; /* Altura fija igual al ancho para que sea cuadrada */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden; /* Para evitar que la imagen se salga del contenedor */
+  border-radius: 4px;
+  background-color: #f0f0f0; /* Fondo gris para espacios vacíos */
+}
+
+.main-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Cubre el espacio recortando si es necesario */
   border-radius: 4px;
 }
 
@@ -94,12 +178,13 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  width: 120px; /* Ancho fijo para las miniaturas */
 }
 
 .thumbnail {
-  width: 100px;
-  height: 100px;
-  object-fit: cover;
+  width: 100px; /* Ancho fijo */
+  height: 100px; /* Altura fija */
+  object-fit: cover; /* Cubre el espacio recortando si necesario */
   border-radius: 4px;
   cursor: pointer;
   border: 2px solid transparent;
@@ -107,7 +192,7 @@
 
 .thumbnail:hover,
 .thumbnail.active {
-  border: 2px solid #4CAF50;
+  border: 2px solid #ff385c;
 }
 
 .close-btn {
