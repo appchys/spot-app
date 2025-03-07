@@ -1,6 +1,7 @@
 // components/SpotForm.js
 import React, { useState, useEffect, useCallback } from "react";
-import { addSpot, uploadPhoto } from "../lib/firebase";
+import { addSpot, uploadPhoto, db } from "../lib/firebase";
+import { collection, getDocs, addDoc } from "firebase/firestore";
 import { GoogleMap, Marker, useLoadScript } from "@react-google-maps/api";
 
 const mapContainerStyle = {
@@ -9,18 +10,24 @@ const mapContainerStyle = {
   marginBottom: "15px",
 };
 
-const libraries = ["places"]; // Necesario para Google Maps
+const libraries = ["places"];
 
 export default function SpotForm({ onClose, onSpotAdded }) {
   const [formData, setFormData] = useState({
     description: "",
     price: "",
     contact: "",
+    category: "",
+    type: "",
     location: { lat: null, lng: null },
     photos: [],
   });
-  const [photoFiles, setPhotoFiles] = useState([]); // Almacena todos los archivos seleccionados
-  const [photoPreviews, setPhotoPreviews] = useState([]); // Almacena las URLs de las miniaturas
+  const [photoFiles, setPhotoFiles] = useState([]);
+  const [photoPreviews, setPhotoPreviews] = useState([]);
+  const [categories, setCategories] = useState(["Departamentos", "Casas", "Restaurantes", "Locales"]);
+  const [types, setTypes] = useState(["Alquiler", "Venta", "Spot"]);
+  const [newCategory, setNewCategory] = useState("");
+  const [newType, setNewType] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -28,11 +35,30 @@ export default function SpotForm({ onClose, onSpotAdded }) {
 
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: "AIzaSyDWL-OI7UYilLvg2b96pL6yfDk-AWrevIM", // Tu API Key
-    libraries, // Añadimos libraries para compatibilidad
+    libraries,
   });
 
+  // Cargar categorías y tipos desde Firebase al montar el componente
   useEffect(() => {
     setIsClient(true);
+
+    const fetchCategoriesAndTypes = async () => {
+      try {
+        // Cargar categorías
+        const categoriesSnapshot = await getDocs(collection(db, "categories"));
+        const fetchedCategories = categoriesSnapshot.docs.map((doc) => doc.data().name);
+        setCategories((prev) => [...prev, ...fetchedCategories.filter((cat) => !prev.includes(cat))]);
+
+        // Cargar tipos
+        const typesSnapshot = await getDocs(collection(db, "types"));
+        const fetchedTypes = typesSnapshot.docs.map((doc) => doc.data().name);
+        setTypes((prev) => [...prev, ...fetchedTypes.filter((type) => !prev.includes(type))]);
+      } catch (error) {
+        console.error("Error al cargar categorías o tipos:", error);
+      }
+    };
+
+    fetchCategoriesAndTypes();
   }, []);
 
   const handleInputChange = useCallback((e) => {
@@ -41,12 +67,9 @@ export default function SpotForm({ onClose, onSpotAdded }) {
   }, []);
 
   const handlePhotoChange = useCallback((e) => {
-    const files = Array.from(e.target.files); // Nuevos archivos seleccionados
+    const files = Array.from(e.target.files);
     if (files.length > 0) {
-      // Agregar los nuevos archivos a los existentes
       setPhotoFiles((prevFiles) => [...prevFiles, ...files]);
-
-      // Generar URLs de miniaturas para los nuevos archivos y añadirlas
       const newPreviews = files.map((file) => URL.createObjectURL(file));
       setPhotoPreviews((prevPreviews) => [...prevPreviews, ...newPreviews]);
     }
@@ -76,6 +99,34 @@ export default function SpotForm({ onClose, onSpotAdded }) {
     }
   }, [isClient]);
 
+  const addNewCategory = useCallback(async () => {
+    if (newCategory && !categories.includes(newCategory)) {
+      try {
+        await addDoc(collection(db, "categories"), { name: newCategory });
+        setCategories((prev) => [...prev, newCategory]);
+        setFormData((prev) => ({ ...prev, category: newCategory }));
+        setNewCategory("");
+      } catch (error) {
+        console.error("Error al agregar categoría:", error);
+        setErrorMessage("No se pudo agregar la categoría");
+      }
+    }
+  }, [newCategory, categories]);
+
+  const addNewType = useCallback(async () => {
+    if (newType && !types.includes(newType)) {
+      try {
+        await addDoc(collection(db, "types"), { name: newType });
+        setTypes((prev) => [...prev, newType]);
+        setFormData((prev) => ({ ...prev, type: newType }));
+        setNewType("");
+      } catch (error) {
+        console.error("Error al agregar tipo:", error);
+        setErrorMessage("No se pudo agregar el tipo");
+      }
+    }
+  }, [newType, types]);
+
   const handleSubmit = useCallback(
     async (e) => {
       e.preventDefault();
@@ -99,11 +150,20 @@ export default function SpotForm({ onClose, onSpotAdded }) {
           formData.price,
           formData.contact,
           photoUrls,
-          formData.location
+          formData.location,
+          formData.category, // Añadimos categoría
+          formData.type // Añadimos tipo
         );
 
-        // Limpiar el formulario después de guardar
-        setFormData({ description: "", price: "", contact: "", location: { lat: null, lng: null }, photos: [] });
+        setFormData({
+          description: "",
+          price: "",
+          contact: "",
+          category: "",
+          type: "",
+          location: { lat: null, lng: null },
+          photos: [],
+        });
         setPhotoFiles([]);
         setPhotoPreviews([]);
         onSpotAdded();
@@ -150,6 +210,60 @@ export default function SpotForm({ onClose, onSpotAdded }) {
             onChange={handleInputChange}
             required
           />
+          <label>Categoría:</label>
+          <select
+            name="category"
+            value={formData.category}
+            onChange={handleInputChange}
+            required
+            style={{ marginBottom: "10px" }}
+          >
+            <option value="">Selecciona una categoría</option>
+            {categories.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
+          <div style={{ display: "flex", gap: "10px", marginBottom: "15px" }}>
+            <input
+              type="text"
+              placeholder="Nueva categoría"
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+            />
+            <button type="button" onClick={addNewCategory}>
+              Agregar
+            </button>
+          </div>
+
+          <label>Tipo:</label>
+          <select
+            name="type"
+            value={formData.type}
+            onChange={handleInputChange}
+            required
+            style={{ marginBottom: "10px" }}
+          >
+            <option value="">Selecciona un tipo</option>
+            {types.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
+          </select>
+          <div style={{ display: "flex", gap: "10px", marginBottom: "15px" }}>
+            <input
+              type="text"
+              placeholder="Nuevo tipo"
+              value={newType}
+              onChange={(e) => setNewType(e.target.value)}
+            />
+            <button type="button" onClick={addNewType}>
+              Agregar
+            </button>
+          </div>
+
           <label>Ubicación:</label>
           <button
             type="button"
