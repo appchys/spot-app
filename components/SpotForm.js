@@ -9,6 +9,8 @@ const mapContainerStyle = {
   marginBottom: "15px",
 };
 
+const libraries = ["places"]; // Necesario para Google Maps
+
 export default function SpotForm({ onClose, onSpotAdded }) {
   const [formData, setFormData] = useState({
     description: "",
@@ -17,7 +19,7 @@ export default function SpotForm({ onClose, onSpotAdded }) {
     location: { lat: null, lng: null },
     photos: [],
   });
-  const [photoFiles, setPhotoFiles] = useState([]); // Almacena todas las imágenes seleccionadas
+  const [photoFiles, setPhotoFiles] = useState([]); // Almacena todos los archivos seleccionados
   const [photoPreviews, setPhotoPreviews] = useState([]); // Almacena las URLs de las miniaturas
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -25,7 +27,8 @@ export default function SpotForm({ onClose, onSpotAdded }) {
   const [isClient, setIsClient] = useState(false);
 
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: "AIzaSyDWL-OI7UYilLvg2b96pL6yfDk-AWrevIM", // Reemplaza con tu API Key
+    googleMapsApiKey: "AIzaSyDWL-OI7UYilLvg2b96pL6yfDk-AWrevIM", // Tu API Key
+    libraries, // Añadimos libraries para compatibilidad
   });
 
   useEffect(() => {
@@ -38,14 +41,15 @@ export default function SpotForm({ onClose, onSpotAdded }) {
   }, []);
 
   const handlePhotoChange = useCallback((e) => {
-    const files = Array.from(e.target.files);
+    const files = Array.from(e.target.files); // Nuevos archivos seleccionados
+    if (files.length > 0) {
+      // Agregar los nuevos archivos a los existentes
+      setPhotoFiles((prevFiles) => [...prevFiles, ...files]);
 
-    // Agregar las nuevas imágenes al estado existente
-    setPhotoFiles((prevFiles) => [...prevFiles, ...files]);
-
-    // Generar URLs de las miniaturas para las nuevas imágenes
-    const newPreviews = files.map((file) => URL.createObjectURL(file));
-    setPhotoPreviews((prevPreviews) => [...prevPreviews, ...newPreviews]);
+      // Generar URLs de miniaturas para los nuevos archivos y añadirlas
+      const newPreviews = files.map((file) => URL.createObjectURL(file));
+      setPhotoPreviews((prevPreviews) => [...prevPreviews, ...newPreviews]);
+    }
   }, []);
 
   const getLocation = useCallback(() => {
@@ -76,7 +80,7 @@ export default function SpotForm({ onClose, onSpotAdded }) {
     async (e) => {
       e.preventDefault();
       setLoading(true);
-      setIsUploading(true); // Mostrar ícono de carga
+      setIsUploading(true);
       setErrorMessage("");
 
       try {
@@ -98,6 +102,7 @@ export default function SpotForm({ onClose, onSpotAdded }) {
           formData.location
         );
 
+        // Limpiar el formulario después de guardar
         setFormData({ description: "", price: "", contact: "", location: { lat: null, lng: null }, photos: [] });
         setPhotoFiles([]);
         setPhotoPreviews([]);
@@ -108,7 +113,7 @@ export default function SpotForm({ onClose, onSpotAdded }) {
         setErrorMessage("Error al agregar el departamento: " + error.message);
       } finally {
         setLoading(false);
-        setIsUploading(false); // Ocultar ícono de carga
+        setIsUploading(false);
       }
     },
     [formData, photoFiles, onSpotAdded, onClose]
