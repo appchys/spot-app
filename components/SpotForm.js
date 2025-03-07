@@ -17,8 +17,8 @@ export default function SpotForm({ onClose, onSpotAdded }) {
     location: { lat: null, lng: null },
     photos: [],
   });
-  const [photoFiles, setPhotoFiles] = useState([]);
-  const [photoPreviews, setPhotoPreviews] = useState([]);
+  const [photoFiles, setPhotoFiles] = useState([]); // Almacena todas las imágenes seleccionadas
+  const [photoPreviews, setPhotoPreviews] = useState([]); // Almacena las URLs de las miniaturas
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -39,11 +39,13 @@ export default function SpotForm({ onClose, onSpotAdded }) {
 
   const handlePhotoChange = useCallback((e) => {
     const files = Array.from(e.target.files);
-    setPhotoFiles(files);
 
-    // Generar URLs de las miniaturas
-    const previews = files.map((file) => URL.createObjectURL(file));
-    setPhotoPreviews(previews);
+    // Agregar las nuevas imágenes al estado existente
+    setPhotoFiles((prevFiles) => [...prevFiles, ...files]);
+
+    // Generar URLs de las miniaturas para las nuevas imágenes
+    const newPreviews = files.map((file) => URL.createObjectURL(file));
+    setPhotoPreviews((prevPreviews) => [...prevPreviews, ...newPreviews]);
   }, []);
 
   const getLocation = useCallback(() => {
@@ -169,7 +171,7 @@ export default function SpotForm({ onClose, onSpotAdded }) {
             accept="image/*"
             onChange={handlePhotoChange}
           />
-          <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
+          <div style={{ display: "flex", gap: "10px", marginTop: "10px", flexWrap: "wrap" }}>
             {photoPreviews.map((preview, index) => (
               <img
                 key={index}
