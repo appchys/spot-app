@@ -18,8 +18,10 @@ export default function SpotForm({ onClose, onSpotAdded }) {
     photos: [],
   });
   const [photoFiles, setPhotoFiles] = useState([]);
+  const [photoPreviews, setPhotoPreviews] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
   const { isLoaded, loadError } = useLoadScript({
@@ -36,7 +38,12 @@ export default function SpotForm({ onClose, onSpotAdded }) {
   }, []);
 
   const handlePhotoChange = useCallback((e) => {
-    setPhotoFiles(Array.from(e.target.files));
+    const files = Array.from(e.target.files);
+    setPhotoFiles(files);
+
+    // Generar URLs de las miniaturas
+    const previews = files.map((file) => URL.createObjectURL(file));
+    setPhotoPreviews(previews);
   }, []);
 
   const getLocation = useCallback(() => {
@@ -67,6 +74,7 @@ export default function SpotForm({ onClose, onSpotAdded }) {
     async (e) => {
       e.preventDefault();
       setLoading(true);
+      setIsUploading(true); // Mostrar ícono de carga
       setErrorMessage("");
 
       try {
@@ -90,6 +98,7 @@ export default function SpotForm({ onClose, onSpotAdded }) {
 
         setFormData({ description: "", price: "", contact: "", location: { lat: null, lng: null }, photos: [] });
         setPhotoFiles([]);
+        setPhotoPreviews([]);
         onSpotAdded();
         onClose();
       } catch (error) {
@@ -97,6 +106,7 @@ export default function SpotForm({ onClose, onSpotAdded }) {
         setErrorMessage("Error al agregar el departamento: " + error.message);
       } finally {
         setLoading(false);
+        setIsUploading(false); // Ocultar ícono de carga
       }
     },
     [formData, photoFiles, onSpotAdded, onClose]
@@ -159,12 +169,29 @@ export default function SpotForm({ onClose, onSpotAdded }) {
             accept="image/*"
             onChange={handlePhotoChange}
           />
+          <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
+            {photoPreviews.map((preview, index) => (
+              <img
+                key={index}
+                src={preview}
+                alt={`Miniatura ${index + 1}`}
+                style={{ width: "50px", height: "50px", objectFit: "cover" }}
+              />
+            ))}
+          </div>
           {errorMessage && <p style={{ color: "red" }}>{errorMessage}</p>}
           <button type="submit" disabled={loading}>
             {loading ? "Guardando..." : "Guardar departamento"}
           </button>
         </form>
       </div>
+      {isUploading && (
+        <div style={{ position: "fixed", top: "20px", right: "20px", zIndex: 1000 }}>
+          <span role="img" aria-label="Cargando">
+            ⏳
+          </span>
+        </div>
+      )}
     </div>
   );
 }
