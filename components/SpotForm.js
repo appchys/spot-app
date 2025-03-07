@@ -2,17 +2,11 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { addSpot, uploadPhoto } from "../lib/firebase";
 import { GoogleMap, Marker, useLoadScript } from "@react-google-maps/api";
-import Image from "next/image"; // Importar el componente Image de Next.js
 
 const mapContainerStyle = {
   width: "250px",
   height: "150px",
   marginBottom: "15px",
-};
-
-const center = {
-  lat: -12.046374, // Latitud por defecto (puedes cambiarla)
-  lng: -77.042793, // Longitud por defecto (puedes cambiarla)
 };
 
 export default function SpotForm({ onClose, onSpotAdded }) {
