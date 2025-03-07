@@ -1,7 +1,8 @@
 // components/SpotForm.js
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { addSpot, uploadPhoto } from "../lib/firebase";
 import { GoogleMap, Marker, useLoadScript } from "@react-google-maps/api";
+import Image from "next/image"; // Importar el componente Image de Next.js
 
 const mapContainerStyle = {
   width: "250px",
@@ -35,16 +36,16 @@ export default function SpotForm({ onClose, onSpotAdded }) {
     setIsClient(true);
   }, []);
 
-  const handleInputChange = (e) => {
+  const handleInputChange = useCallback((e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+  }, []);
 
-  const handlePhotoChange = (e) => {
+  const handlePhotoChange = useCallback((e) => {
     setPhotoFiles(Array.from(e.target.files));
-  };
+  }, []);
 
-  const getLocation = () => {
+  const getLocation = useCallback(() => {
     if (isClient && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -66,43 +67,46 @@ export default function SpotForm({ onClose, onSpotAdded }) {
     } else {
       setErrorMessage("La geolocalización no es soportada por este navegador");
     }
-  };
+  }, [isClient]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setErrorMessage("");
+  const handleSubmit = useCallback(
+    async (e) => {
+      e.preventDefault();
+      setLoading(true);
+      setErrorMessage("");
 
-    try {
-      let photoUrls = [];
-      if (photoFiles.length > 0) {
-        photoUrls = await Promise.all(
-          photoFiles.map(async (file) => {
-            const url = await uploadPhoto(file);
-            return url;
-          })
+      try {
+        let photoUrls = [];
+        if (photoFiles.length > 0) {
+          photoUrls = await Promise.all(
+            photoFiles.map(async (file) => {
+              const url = await uploadPhoto(file);
+              return url;
+            })
+          );
+        }
+
+        await addSpot(
+          formData.description,
+          formData.price,
+          formData.contact,
+          photoUrls,
+          formData.location
         );
+
+        setFormData({ description: "", price: "", contact: "", location: { lat: null, lng: null }, photos: [] });
+        setPhotoFiles([]);
+        onSpotAdded();
+        onClose();
+      } catch (error) {
+        console.error("Error al agregar el departamento:", error);
+        setErrorMessage("Error al agregar el departamento: " + error.message);
+      } finally {
+        setLoading(false);
       }
-
-      await addSpot(
-        formData.description,
-        formData.price,
-        formData.contact,
-        photoUrls,
-        formData.location
-      );
-
-      setFormData({ description: "", price: "", contact: "", location: { lat: null, lng: null }, photos: [] });
-      setPhotoFiles([]);
-      onSpotAdded();
-      onClose();
-    } catch (error) {
-      console.error("Error al agregar el departamento:", error);
-      setErrorMessage("Error al agregar el departamento: " + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [formData, photoFiles, onSpotAdded, onClose]
+  );
 
   if (loadError) return <div>Error al cargar el mapa</div>;
   if (!isLoaded) return <div>Cargando mapa...</div>;
