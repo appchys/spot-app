@@ -1,8 +1,9 @@
 // components/SpotForm.js
 import React, { useState, useEffect, useCallback } from "react";
 import { addSpot, uploadPhoto, db } from "../lib/firebase";
-import { collection, getDocs, addDoc } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { GoogleMap, Marker, useLoadScript } from "@react-google-maps/api";
+import Select from "react-select"; // Importamos react-select
 
 const mapContainerStyle = {
   width: "250px",
@@ -17,17 +18,24 @@ export default function SpotForm({ onClose, onSpotAdded }) {
     description: "",
     price: "",
     contact: "",
-    category: "",
-    type: "",
+    categories: [], // Ahora es un array para selección múltiple
+    types: [], // Ahora es un array para selección múltiple
     location: { lat: null, lng: null },
     photos: [],
   });
   const [photoFiles, setPhotoFiles] = useState([]);
   const [photoPreviews, setPhotoPreviews] = useState([]);
-  const [categories, setCategories] = useState(["Departamentos", "Casas", "Restaurantes", "Locales"]);
-  const [types, setTypes] = useState(["Alquiler", "Venta", "Spot"]);
-  const [newCategory, setNewCategory] = useState("");
-  const [newType, setNewType] = useState("");
+  const [categoryOptions, setCategoryOptions] = useState([
+    { value: "Departamentos", label: "Departamentos" },
+    { value: "Casas", label: "Casas" },
+    { value: "Restaurantes", label: "Restaurantes" },
+    { value: "Locales", label: "Locales" },
+  ]);
+  const [typeOptions, setTypeOptions] = useState([
+    { value: "Alquiler", label: "Alquiler" },
+    { value: "Venta", label: "Venta" },
+    { value: "Spot", label: "Spot" },
+  ]);
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -46,13 +54,25 @@ export default function SpotForm({ onClose, onSpotAdded }) {
       try {
         // Cargar categorías
         const categoriesSnapshot = await getDocs(collection(db, "categories"));
-        const fetchedCategories = categoriesSnapshot.docs.map((doc) => doc.data().name);
-        setCategories((prev) => [...prev, ...fetchedCategories.filter((cat) => !prev.includes(cat))]);
+        const fetchedCategories = categoriesSnapshot.docs.map((doc) => ({
+          value: doc.data().name,
+          label: doc.data().name,
+        }));
+        setCategoryOptions((prev) => [
+          ...prev,
+          ...fetchedCategories.filter((cat) => !prev.some((p) => p.value === cat.value)),
+        ]);
 
         // Cargar tipos
         const typesSnapshot = await getDocs(collection(db, "types"));
-        const fetchedTypes = typesSnapshot.docs.map((doc) => doc.data().name);
-        setTypes((prev) => [...prev, ...fetchedTypes.filter((type) => !prev.includes(type))]);
+        const fetchedTypes = typesSnapshot.docs.map((doc) => ({
+          value: doc.data().name,
+          label: doc.data().name,
+        }));
+        setTypeOptions((prev) => [
+          ...prev,
+          ...fetchedTypes.filter((type) => !prev.some((p) => p.value === type.value)),
+        ]);
       } catch (error) {
         console.error("Error al cargar categorías o tipos:", error);
       }
@@ -99,33 +119,57 @@ export default function SpotForm({ onClose, onSpotAdded }) {
     }
   }, [isClient]);
 
-  const addNewCategory = useCallback(async () => {
-    if (newCategory && !categories.includes(newCategory)) {
+  const handleCategoryChange = useCallback(
+    (selectedOptions) => {
+      const selectedCategories = selectedOptions ? selectedOptions.map((option) => option.value) : [];
+      setFormData((prev) => ({ ...prev, categories: selectedCategories }));
+    },
+    []
+  );
+
+  const handleTypeChange = useCallback(
+    (selectedOptions) => {
+      const selectedTypes = selectedOptions ? selectedOptions.map((option) => option.value) : [];
+      setFormData((prev) => ({ ...prev, types: selectedTypes }));
+    },
+    []
+  );
+
+  const handleCategoryCreate = useCallback(
+    async (inputValue) => {
+      const newCategory = { value: inputValue, label: inputValue };
       try {
-        await addDoc(collection(db, "categories"), { name: newCategory });
-        setCategories((prev) => [...prev, newCategory]);
-        setFormData((prev) => ({ ...prev, category: newCategory }));
-        setNewCategory("");
+        await addDoc(collection(db, "categories"), { name: inputValue });
+        setCategoryOptions((prev) => [...prev, newCategory]);
+        setFormData((prev) => ({
+          ...prev,
+          categories: [...prev.categories, inputValue],
+        }));
       } catch (error) {
         console.error("Error al agregar categoría:", error);
         setErrorMessage("No se pudo agregar la categoría");
       }
-    }
-  }, [newCategory, categories]);
+    },
+    []
+  );
 
-  const addNewType = useCallback(async () => {
-    if (newType && !types.includes(newType)) {
+  const handleTypeCreate = useCallback(
+    async (inputValue) => {
+      const newType = { value: inputValue, label: inputValue };
       try {
-        await addDoc(collection(db, "types"), { name: newType });
-        setTypes((prev) => [...prev, newType]);
-        setFormData((prev) => ({ ...prev, type: newType }));
-        setNewType("");
+        await addDoc(collection(db, "types"), { name: inputValue });
+        setTypeOptions((prev) => [...prev, newType]);
+        setFormData((prev) => ({
+          ...prev,
+          types: [...prev.types, inputValue],
+        }));
       } catch (error) {
         console.error("Error al agregar tipo:", error);
         setErrorMessage("No se pudo agregar el tipo");
       }
-    }
-  }, [newType, types]);
+    },
+    []
+  );
 
   const handleSubmit = useCallback(
     async (e) => {
@@ -151,16 +195,16 @@ export default function SpotForm({ onClose, onSpotAdded }) {
           formData.contact,
           photoUrls,
           formData.location,
-          formData.category, // Añadimos categoría
-          formData.type // Añadimos tipo
+          formData.categories, // Array de categorías
+          formData.types // Array de tipos
         );
 
         setFormData({
           description: "",
           price: "",
           contact: "",
-          category: "",
-          type: "",
+          categories: [],
+          types: [],
           location: { lat: null, lng: null },
           photos: [],
         });
@@ -210,59 +254,31 @@ export default function SpotForm({ onClose, onSpotAdded }) {
             onChange={handleInputChange}
             required
           />
-          <label>Categoría:</label>
-          <select
-            name="category"
-            value={formData.category}
-            onChange={handleInputChange}
-            required
-            style={{ marginBottom: "10px" }}
-          >
-            <option value="">Selecciona una categoría</option>
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
-          <div style={{ display: "flex", gap: "10px", marginBottom: "15px" }}>
-            <input
-              type="text"
-              placeholder="Nueva categoría"
-              value={newCategory}
-              onChange={(e) => setNewCategory(e.target.value)}
-            />
-            <button type="button" onClick={addNewCategory}>
-              Agregar
-            </button>
-          </div>
+          <label>Categorías:</label>
+          <Select
+            isMulti
+            name="categories"
+            options={categoryOptions}
+            value={categoryOptions.filter((option) => formData.categories.includes(option.value))}
+            onChange={handleCategoryChange}
+            onCreateOption={handleCategoryCreate}
+            placeholder="Escribe o selecciona categorías..."
+            isClearable
+            styles={{ container: (base) => ({ ...base, marginBottom: "15px" }) }}
+          />
 
           <label>Tipo:</label>
-          <select
-            name="type"
-            value={formData.type}
-            onChange={handleInputChange}
-            required
-            style={{ marginBottom: "10px" }}
-          >
-            <option value="">Selecciona un tipo</option>
-            {types.map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
-          <div style={{ display: "flex", gap: "10px", marginBottom: "15px" }}>
-            <input
-              type="text"
-              placeholder="Nuevo tipo"
-              value={newType}
-              onChange={(e) => setNewType(e.target.value)}
-            />
-            <button type="button" onClick={addNewType}>
-              Agregar
-            </button>
-          </div>
+          <Select
+            isMulti
+            name="types"
+            options={typeOptions}
+            value={typeOptions.filter((option) => formData.types.includes(option.value))}
+            onChange={handleTypeChange}
+            onCreateOption={handleTypeCreate}
+            placeholder="Escribe o selecciona tipos..."
+            isClearable
+            styles={{ container: (base) => ({ ...base, marginBottom: "15px" }) }}
+          />
 
           <label>Ubicación:</label>
           <button
